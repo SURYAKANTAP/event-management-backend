@@ -65,7 +65,8 @@ def create_new_event(
             shutil.copyfileobj(image.file, buffer)
             
         # Construct the URL to be saved in the database
-        image_url = f"http://127.0.0.1:8000/{file_path}"
+        base_url = os.getenv("BASE_URL", "http://127.0.0.1:8000")
+        image_url = f"{base_url}/{file_path}"
 
     # Create a pydantic schema instance from the form data
     event_data = schemas.EventCreate(
@@ -99,7 +100,8 @@ def update_existing_event(
         file_path = f"static/images/{filename}"
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(image.file, buffer)
-        image_url = f"http://127.0.0.1:8000/{file_path}"
+        base_url = os.getenv("BASE_URL", "http://127.0.0.1:8000")
+        image_url = f"{base_url}/{file_path}"
     
     # Note: In a real app, you'd fetch the existing image_url if no new image is provided.
     # For this assignment, we'll keep it simple. If an image is provided, it's updated.
