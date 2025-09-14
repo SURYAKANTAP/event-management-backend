@@ -11,15 +11,15 @@ from ..core.security import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, ve
 router = APIRouter()
 
 @router.post("/signup", response_model=schemas.User)
-def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    db_user = crud.get_user_by_email(db, email=user.email)
+async def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    db_user = await crud.get_user_by_email(db, email=user.email)
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
-    return crud.create_user(db=db, user=user)
+    return await crud.create_user(db=db, user=user)
 
 @router.post("/login", response_model=schemas.Token)
-def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()):
-    user = crud.get_user_by_email(db, email=form_data.username)
+async def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()):
+    user = await crud.get_user_by_email(db, email=form_data.username)
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -32,7 +32,7 @@ def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = 
         # Update the user's password hash in the database
         user.hashed_password = new_hash
         db.add(user)
-        db.commit()
+        await db.commit()
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.email, "role": user.role}, expires_delta=access_token_expires

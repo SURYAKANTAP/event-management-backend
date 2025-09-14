@@ -1,15 +1,30 @@
 # app/main.py
 from fastapi import FastAPI
+from contextlib import asynccontextmanager
 from .database import engine, Base
 from .routers import auth, events, users
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-# This command creates the database tables if they don't exist
-# Do this once, perhaps in a separate script or managed with Alembic in production
-Base.metadata.create_all(bind=engine)
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # This block runs on startup
+    async with engine.begin() as conn:
+        # Create the database tables
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+
+app = FastAPI(lifespan=lifespan)
+
+
+
+
+
+
+
+
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 

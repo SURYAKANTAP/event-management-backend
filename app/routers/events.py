@@ -34,7 +34,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         token_data = schemas.TokenData(email=email)
     except JWTError:
         raise credentials_exception
-    user = crud.get_user_by_email(db, email=token_data.email)
+    user = await crud.get_user_by_email(db, email=token_data.email)
     if user is None:
         raise credentials_exception
     return user
@@ -45,7 +45,7 @@ async def get_current_admin_user(current_user: models.User = Depends(get_current
     return current_user
 
 @router.post("/events/", response_model=schemas.Event, status_code=status.HTTP_201_CREATED)
-def create_new_event(
+async def create_new_event(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_admin_user),
     title: str = Form(...),
@@ -76,15 +76,15 @@ def create_new_event(
         time=time,
         image_url=image_url
     )
-    return crud.create_event(db=db, event=event_data)
+    return await crud.create_event(db=db, event=event_data)
 
 @router.get("/events/", response_model=List[schemas.Event])
-def read_events(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    events = crud.get_events(db, skip=skip, limit=limit)
+async def read_events(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    events = await crud.get_events(db, skip=skip, limit=limit)
     return events
 
 @router.put("/events/{event_id}", response_model=schemas.Event)
-def update_existing_event(
+async def update_existing_event(
     event_id: int,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_admin_user),
@@ -115,18 +115,18 @@ def update_existing_event(
         image_url=image_url
     )
     
-    db_event = crud.update_event(db, event_id=event_id, event=event_data)
+    db_event = await crud.update_event(db, event_id=event_id, event=event_data)
     if db_event is None:
         raise HTTPException(status_code=404, detail="Event not found")
     return db_event
 
 @router.delete("/events/{event_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_existing_event(
+async def delete_existing_event(
     event_id: int,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_admin_user)
 ):
-    db_event = crud.delete_event(db, event_id=event_id)
+    db_event = await crud.delete_event(db, event_id=event_id)
     if db_event is None:
         raise HTTPException(status_code=404, detail="Event not found")
     return {"detail": "Event deleted successfully"}

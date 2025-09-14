@@ -1,29 +1,27 @@
 import os
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker, declarative_base
 from dotenv import load_dotenv
 
 load_dotenv()
 
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 
-# THE FIX IS HERE: Add connect_args with pool options
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    pool_size=10,  # Number of connections to keep open in the pool
-    max_overflow=2, # Number of extra connections to allow
-    pool_recycle=300, # Recycle connections every 300 seconds (5 minutes)
-    pool_pre_ping=True, # Check connection health before use
-    pool_use_lifo=True, # Use Last-In, First-Out for connection retrieval
+# Change the URL scheme for asyncpg
+if SQLALCHEMY_DATABASE_URL and SQLALCHEMY_DATABASE_URL.startswith("postgresql://"):
+    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+# Create an async engine
+engine = create_async_engine(SQLALCHEMY_DATABASE_URL)
+
+# Create an async session maker
+AsyncSessionLocal = sessionmaker(
+    engine, class_=AsyncSession, expire_on_commit=False
 )
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# Create a new async dependency for getting a DB session
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        yield session
