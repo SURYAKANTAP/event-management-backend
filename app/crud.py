@@ -51,7 +51,7 @@ async def update_event(db: Session, event_id: int, event: schemas.EventCreate):
     result = await db.execute(select(models.Event).filter(models.Event.id == event_id))
     db_event = result.scalars().first()
     if db_event:
-        update_data = event.dict(exclude_unset=True)
+        update_data = event.dict(exclude_none=True)
         for key, value in update_data.items():
             setattr(db_event, key, value)
         await db.commit()
